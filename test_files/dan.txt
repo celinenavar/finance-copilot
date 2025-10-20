@@ -1,6 +1,16 @@
 hi im dan
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+hi im celine n
+=======
+>>>>>>> Stashed changes
 hi im Moe
 hi im theo
 hi im celine
 hi im Rithanya
 hello all
+<<<<<<< Updated upstream
+=======
+>>>>>>> d918289ecb1a581036b31b65f4b56b227fc43e1f
+>>>>>>> Stashed changes

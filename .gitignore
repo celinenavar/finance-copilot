@@ -18,6 +18,7 @@ __pycache__/
 
 # Logs
 *.log
+logs/
 
 # Unit test / coverage reports
 htmlcov/
@@ -55,3 +56,45 @@ Thumbs.db
 .eggs/
 dist/
 build/
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Production builds
+frontend/build/
+frontend/dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Upload directory
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flask
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python virtual environment
+venv/
+env/

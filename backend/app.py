@@ -1,9 +1,23 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask
 from flask_cors import CORS
+from routes.api_routes import api_bp
+from config import Config
 
-app = Flask(__name__)
-CORS(app)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    CORS(app)
+    
+    # Ensure upload directory exists
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
+    # Register blueprints
+    app.register_blueprint(api_bp, url_prefix='/api')
+    
+    return app
 
-@app.route("/api/hello")
-def hello():
-    return jsonify({"message": "Hello from Flask backend!"})
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True)

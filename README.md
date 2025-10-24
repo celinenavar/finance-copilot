@@ -1,4 +1,4 @@
-# Finance Copilot 💰
+# Captura 💰
 
 A web-based financial AI assistant for managing and analyzing your stock portfolio.
 

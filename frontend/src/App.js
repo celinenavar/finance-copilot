@@ -1,16 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import WelcomePage from "./pages/WelcomePage";
 import HelloPage from "./pages/HelloPage";
-
+import Dashboard from "./pages/Dashboard.js";
 function App() {
   return (
     <Router>
-      <nav style={{ padding: "1rem" }}>
-        <Link to="/">Home</Link> | <Link to="/hello">Hello</Link>
-      </nav>
-
       <Routes>
-        <Route path="/" element={<h1>Welcome to Finance Copilot</h1>} />
+        <Route path="/" element={<WelcomePage />} />
         <Route path="/hello" element={<HelloPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   );

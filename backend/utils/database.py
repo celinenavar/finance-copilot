@@ -27,12 +27,31 @@ class DatabaseManager:
             db_path (str): Path to SQLite database file
         """
         self.db_path = db_path
-        self.schema_path = os.path.join(os.path.dirname(__file__), "..", "database_schema.sql")
+        # Get the absolute path to the schema file
+        self.schema_path = self._get_schema_path()
         self._initialize_database()
+    
+    def _get_schema_path(self):
+        """
+        Get the absolute path to the database schema file.
+        Works from any directory by finding the backend directory.
+        """
+        # Get the directory where this file is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Navigate to the backend directory (parent of utils)
+        backend_dir = os.path.dirname(current_dir)
+        
+        # Construct the schema file path
+        schema_path = os.path.join(backend_dir, "database_schema.sql")
+        
+        logger.info(f"Looking for schema file at: {schema_path}")
+        return schema_path
     
     def _initialize_database(self):
         """
         Initialize database by creating it and running schema if needed.
+        Always ensures schema is applied, even for existing databases.
         """
         try:
             # Check if database exists
@@ -41,6 +60,8 @@ class DatabaseManager:
                 self._create_database()
             else:
                 logger.info(f"Using existing database: {self.db_path}")
+                # Always ensure schema is applied for existing databases
+                self._ensure_schema_applied()
                 
         except Exception as e:
             logger.error(f"Failed to initialize database: {str(e)}")
@@ -53,17 +74,8 @@ class DatabaseManager:
         try:
             # Read and execute schema
             if os.path.exists(self.schema_path):
-                with open(self.schema_path, 'r') as schema_file:
-                    schema_sql = schema_file.read()
-                
-                with self.get_connection() as conn:
-                    # Execute schema (split by semicolon to handle multiple statements)
-                    statements = [stmt.strip() for stmt in schema_sql.split(';') if stmt.strip()]
-                    for statement in statements:
-                        if statement.upper().startswith(('CREATE', 'INSERT', 'PRAGMA')):
-                            conn.execute(statement)
-                    conn.commit()
-                    logger.info("Database schema created successfully")
+                logger.info(f"Applying schema from: {self.schema_path}")
+                self._execute_schema()
             else:
                 logger.warning(f"Schema file not found: {self.schema_path}")
                 # Create basic tables if schema file is missing
@@ -71,6 +83,77 @@ class DatabaseManager:
                 
         except Exception as e:
             logger.error(f"Failed to create database: {str(e)}")
+            raise
+    
+    def _ensure_schema_applied(self):
+        """
+        Ensure schema is applied to existing database.
+        Checks if tables exist and applies schema if needed.
+        """
+        try:
+            with self.get_connection() as conn:
+                # Check if portfolios table exists
+                cursor = conn.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='portfolios'
+                """)
+                
+                if not cursor.fetchone():
+                    logger.info("Portfolios table not found, applying schema")
+                    if os.path.exists(self.schema_path):
+                        self._execute_schema()
+                    else:
+                        logger.warning("Schema file not found, creating basic tables")
+                        self._create_basic_tables()
+                else:
+                    logger.info("Database schema already applied")
+                    
+        except Exception as e:
+            logger.error(f"Failed to ensure schema applied: {str(e)}")
+            raise
+    
+    def _execute_schema(self):
+        """
+        Execute the database schema from the schema file.
+        """
+        try:
+            with open(self.schema_path, 'r', encoding='utf-8') as schema_file:
+                schema_sql = schema_file.read()
+            
+            logger.info(f"Schema file content length: {len(schema_sql)} characters")
+            
+            with self.get_connection() as conn:
+                # Split schema into individual statements
+                statements = [stmt.strip() for stmt in schema_sql.split(';') if stmt.strip()]
+                logger.info(f"Found {len(statements)} statements to execute")
+                
+                executed_count = 0
+                for i, statement in enumerate(statements):
+                    # Execute all non-empty statements
+                    if statement.strip():
+                        try:
+                            conn.execute(statement)
+                            executed_count += 1
+                            logger.debug(f"Executed statement {i+1}: {statement[:50]}...")
+                        except sqlite3.Error as e:
+                            # Some statements might fail if they already exist (like CREATE TABLE IF NOT EXISTS)
+                            if "already exists" not in str(e).lower():
+                                logger.error(f"Statement {i+1} failed: {str(e)}")
+                                logger.error(f"Failed statement: {statement}")
+                                raise
+                            else:
+                                logger.debug(f"Statement {i+1} skipped (already exists): {statement[:50]}...")
+                
+                conn.commit()
+                logger.info(f"Database schema executed successfully - {executed_count} statements executed")
+                
+                # Verify tables were created
+                cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = [row[0] for row in cursor.fetchall()]
+                logger.info(f"Tables created: {tables}")
+                
+        except Exception as e:
+            logger.error(f"Failed to execute schema: {str(e)}")
             raise
     
     def _create_basic_tables(self):
@@ -402,7 +485,10 @@ class DatabaseManager:
 
 
 # Global database manager instance
-db_manager = DatabaseManager()
+# Use absolute path to ensure database is created in the backend directory
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+db_path = os.path.join(backend_dir, "captura.db")
+db_manager = DatabaseManager(db_path)
 
 
 # Convenience functions for easy access
